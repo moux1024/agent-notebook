@@ -40,7 +40,6 @@ export type Block =
 export interface Dive {
   id: string;
   title: string;
-  source: string;
   blocks: Block[];
 }
 
@@ -72,7 +71,6 @@ export const steps: Step[] = [
       {
         id: "input-payload",
         title: "请求体里有什么",
-        source: "对话①",
         blocks: [
           { kind: "p", text: "用户输入与接入层通常完成四件事：身份认证（校验 token / API key）、会话标识（携带 session_id / conversation_id 关联历史）、请求封装（输入+会话信息+客户端参数打包）、限流与路由。" },
           {
@@ -99,7 +97,6 @@ export const steps: Step[] = [
       {
         id: "gateway-pipeline",
         title: "网关的一毫秒里发生了什么",
-        source: "对话①·延伸",
         blocks: [
           { kind: "p", text: "请求到达网关后、进入 Agent 服务前，会经过一条固定流水线：" },
           { kind: "list", items: [
@@ -127,7 +124,6 @@ X-Session-Id: sess_a1b2c3` },
       {
         id: "memory-deep",
         title: "神经网络没有记忆，Agent 怎么记住你？",
-        source: "对话⑥",
         blocks: [
           { kind: "p", text: "模型每次推理都是无状态的：输入一组 token，输出一组 token，结束即丢弃。但 Agent 通过外部记忆机制，在模型外部模拟出了「记忆」。" },
           { kind: "p", text: "先区分两种「记忆」——" },
@@ -160,7 +156,6 @@ X-Session-Id: sess_a1b2c3` },
       {
         id: "harness-deep",
         title: "Harness 到底是什么？",
-        source: "对话②",
         blocks: [
           { kind: "quote", text: "Harness 就是 Agent 的执行引擎：它把「调用模型 → 解析输出 → 执行工具 → 回填结果 → 再调用模型」这个循环自动化地管理起来。" },
           { kind: "p", text: "Harness（Agent 运行时/编排层）不是一个小模块，而是驱动整个执行流程的调度中心，覆盖：" },
@@ -178,7 +173,6 @@ X-Session-Id: sess_a1b2c3` },
       {
         id: "embed-deep",
         title: "「问题向量化」是什么？",
-        source: "对话③",
         blocks: [
           { kind: "p", text: "把用户问题用嵌入模型（Embedding Model）转换成高维数值向量（常见 768 / 1024 / 1536 维），让「文字问题」变成「机器能计算相似度的数字表示」。" },
           { kind: "p", text: "为什么需要它：关键词搜索只能匹配字面——用户问「怎么退款」，文档写「如何申请退货」，就找不到。向量化后语义相近的句子距离更近，用词不同也能检索到。" },
@@ -210,7 +204,6 @@ X-Session-Id: sess_a1b2c3` },
       {
         id: "llm-nn",
         title: "LLM 是神经网络吗？",
-        source: "对话⑤",
         blocks: [
           { kind: "p", text: "是。LLM 是神经网络的一种——基于 Transformer 架构的深度神经网络。" },
           { kind: "quote", text: "LLM = 基于 Transformer 的深度神经网络 + 超大规模参数 + 海量文本训练" },
@@ -225,7 +218,6 @@ X-Session-Id: sess_a1b2c3` },
       {
         id: "nn-vs-math",
         title: "神经网络预测 vs 数学模型",
-        source: "对话④",
         blocks: [
           { kind: "p", text: "神经网络本身就是一种数学模型，区别在于形式与构建方式——" },
           { kind: "table", headers: ["维度", "传统数学模型", "神经网络"], rows: [
@@ -242,7 +234,6 @@ X-Session-Id: sess_a1b2c3` },
       {
         id: "thinking",
         title: "彩蛋：模型在「想」什么",
-        source: "对话⑦",
         blocks: [
           { kind: "p", text: "在输出答案之前，很多模型会先生成一段「思维链」——给自己写的推理草稿：拆解问题、回忆相关概念、规划答案结构。对话界面上显示的「Thought for N seconds」就是它。" },
           { kind: "p", text: "它发生在 MODEL 内部，消耗的也是同一批 GPU 的 token 生成算力；这段草稿通常不直接展示给用户，但会占用首 token 之前的那段时间。" },
@@ -262,7 +253,6 @@ X-Session-Id: sess_a1b2c3` },
       {
         id: "skills-deep",
         title: "Skills 在哪一层？",
-        source: "对话⑧",
         blocks: [
           { kind: "p", text: "Skill 是封装好的完整能力单元：专门的提示词 + 一组相关工具 + 预设工作流 + 参数 schema（甚至本地脚本）。例如「发送邮件」这个 Skill 内部包含校验收件人、调用邮件 API、失败重试等多个步骤。" },
           { kind: "p", text: "它横跨三个环节：上下文组装（注入 Skill 列表让模型知道有哪些能力）→ 模型推理（选择 Skill 并填参数）→ Harness 执行（加载定义，展开内部子流程，可能嵌套多次工具调用甚至另一个 Skill）。" },
@@ -288,7 +278,6 @@ X-Session-Id: sess_a1b2c3` },
       {
         id: "safety-pipeline",
         title: "后处理流水线的四道工序",
-        source: "对话①·延伸",
         blocks: [
           { kind: "list", items: [
             "安全审核：规则引擎 + 小型分类模型扫描最终文本，命中违规类别则拦截或触发重写",
@@ -313,7 +302,6 @@ X-Session-Id: sess_a1b2c3` },
       {
         id: "sse-wire",
         title: "SSE 事件流长什么样",
-        source: "延伸",
         blocks: [
           { kind: "p", text: "主流方案是 SSE（Server-Sent Events）：单向、基于普通 HTTP、断线自动重连，比 WebSocket 轻得多。只有需要客户端主动上行（如中途打断生成）才升级到 WebSocket。" },
           { kind: "code", lang: "text", code: `event: token
@@ -330,7 +318,6 @@ data: [DONE]` },
       {
         id: "ttft",
         title: "为什么要流式：TTFT 与总时长的博弈",
-        source: "延伸",
         blocks: [
           { kind: "p", text: "非流式下，你要等全部 token 生成完（比如 2.7s）才看到第一个字。流式把「首字时间（TTFT）」提前到模型吐出第一个 token 的时刻（几百毫秒），感知速度提升数倍——总时长没变，等待体验完全不同。" },
           { kind: "p", text: "几个工程细节：" },
@@ -354,7 +341,6 @@ data: [DONE]` },
       {
         id: "persist-writes",
         title: "一轮对话结束后，写入了什么",
-        source: "对话①·⑥",
         blocks: [
           { kind: "p", text: "回复返回用户后，Agent 的收尾写入通常有四类：" },
           { kind: "table", headers: ["写入内容", "去向", "下一次的用途"], rows: [
@@ -369,7 +355,6 @@ data: [DONE]` },
       {
         id: "memory-loop",
         title: "记忆闭环：读与写的对偶",
-        source: "对话⑥·⑦",
         blocks: [
           { kind: "p", text: "把第 3 站（MEMORY 读取）和这一站（PERSIST 写入）对齐看，才是完整的记忆系统：" },
           { kind: "list", items: [

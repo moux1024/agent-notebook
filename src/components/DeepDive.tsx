@@ -66,7 +66,6 @@ export default function DeepDive({ dive }: { dive: Dive }) {
         <span className="dive-label">
           深潜 · {dive.title}
         </span>
-        <span className="dive-source">{dive.source}</span>
       </button>
       {open && (
         <div className="dive-body">
