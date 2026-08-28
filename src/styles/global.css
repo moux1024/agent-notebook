@@ -562,6 +562,7 @@ main {
   height: 2px;
   background: var(--panel-edge);
   border-radius: 2px;
+  pointer-events: none;
 }
 
 .tl-progress {
@@ -574,6 +575,7 @@ main {
   box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
   max-width: calc(100% - 14px);
   transition: width 0.08s linear;
+  pointer-events: none;
 }
 
 .tl-stop {
@@ -631,6 +633,7 @@ main {
   gap: 4px;
   color: var(--faint);
   opacity: 0.55;
+  pointer-events: none;
 }
 
 .tl-more .tl-tick {
@@ -656,6 +659,7 @@ main {
     0 0 0 3px rgba(167, 139, 250, 0.25),
     0 0 18px rgba(167, 139, 250, 0.9);
   transition: left 0.08s linear, background 0.4s;
+  pointer-events: none;
 }
 
 .tl-dot::after {
@@ -681,6 +685,7 @@ main {
   border-bottom: none;
   border-radius: 50% 50% 0 0 / 100% 100% 0 0;
   animation: loopFlow 2.6s linear infinite;
+  pointer-events: none;
 }
 
 @keyframes loopFlow {
