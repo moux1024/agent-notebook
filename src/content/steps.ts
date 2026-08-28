@@ -1,0 +1,297 @@
+/**
+ * Agent Notebook 内容数据
+ *
+ * 九个站点 = 一条用户消息在 Agent 系统中的生命周期。
+ * 深潜（dive）承载原始 8 组 DeepSeek 对话中的概念详解。
+ *
+ * 内容修订指南：
+ * - 这里的流程不是固定管线：增删站点改 steps 数组即可，拓扑带/时间线自动跟随
+ * - 已知缺口（待后续核对完整流程时补充）：思维链（thinking）环节仅在 MODEL 站作为彩蛋提及，
+ *   若完整流程中它应是独立站点，可在 MODEL 前插入新 step
+ */
+
+export type TopologyNodeId =
+  | "CLIENT"
+  | "GATEWAY"
+  | "AGENT"
+  | "GPU"
+  | "VECDB"
+  | "TOOLS"
+  | "DB";
+
+export interface TopologyNode {
+  id: TopologyNodeId;
+  label: string;
+  icon: string;
+}
+
+export const topologyNodes: TopologyNode[] = [
+  { id: "CLIENT", label: "客户端", icon: "▣" },
+  { id: "GATEWAY", label: "网关", icon: "≋" },
+  { id: "AGENT", label: "Agent 服务", icon: "⚙" },
+  { id: "GPU", label: "GPU 集群", icon: "🔥" },
+  { id: "VECDB", label: "向量库", icon: "◍" },
+  { id: "TOOLS", label: "工具服务", icon: "🔧" },
+  { id: "DB", label: "数据库", icon: "▤" },
+];
+
+export type Block =
+  | { kind: "p"; text: string }
+  | { kind: "list"; items: string[] }
+  | { kind: "table"; headers: string[]; rows: string[][] }
+  | { kind: "code"; lang: string; code: string }
+  | { kind: "quote"; text: string };
+
+export interface Dive {
+  id: string;
+  title: string;
+  source: string;
+  blocks: Block[];
+}
+
+export interface Step {
+  id: string;
+  name: string;
+  body: string;
+  badge: string;
+  badgeDetail: string;
+  nodes: TopologyNodeId[];
+  /** 回路：此站点之后流程可能跳回的目标站点（体现"可扩展循环"而非固定管线） */
+  loopsTo?: string;
+  dives: Dive[];
+}
+
+export const steps: Step[] = [
+  {
+    id: "INPUT",
+    name: "发送",
+    body: "你在输入框敲下问题，按下回车。客户端把文本、session_id、身份凭证打包成一个 HTTPS 请求——此时它只是一段几百字节的 JSON，还没有遇到任何「智能」。整个旅程中，这是唯一发生在你设备上的一步。",
+    badge: "1× 浏览器进程",
+    badgeDetail: "单个标签页 · 请求体 ≈ 数百字节",
+    nodes: ["CLIENT"],
+    dives: [
+      {
+        id: "input-payload",
+        title: "请求体里有什么",
+        source: "对话①",
+        blocks: [
+          { kind: "p", text: "用户输入与接入层通常完成四件事：身份认证（校验 token / API key）、会话标识（携带 session_id / conversation_id 关联历史）、请求封装（输入+会话信息+客户端参数打包）、限流与路由。" },
+          {
+            kind: "code",
+            lang: "json",
+            code: `{
+  "conversation_id": "sess_a1b2c3",
+  "message": "帮我查一下北京明天的天气",
+  "auth": "Bearer eyJhbGci..."
+}`,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "GATEWAY",
+    name: "接入",
+    body: "请求先抵达网关。它校验你的身份、检查限流、按会话路由到对应的 Agent 服务实例。session_id 在这里被登记，保证接下来的每一步——从记忆加载到流式返回——都关联到同一个会话。",
+    badge: "1× 网关实例",
+    badgeDetail: "Envoy/Nginx · TLS 终结 · 毫秒级",
+    nodes: ["GATEWAY"],
+    dives: [],
+  },
+  {
+    id: "MEMORY",
+    name: "记忆加载",
+    body: "Agent 服务收到请求后做的第一件事不是思考，是「回忆」。神经网络本身无状态——它不记得你上一轮说过什么。所以必须从外部存储加载：最近几轮原文（短期记忆）、对话摘要、用户画像、可语义检索的向量记忆。",
+    badge: "2~3× 存储查询",
+    badgeDetail: "Redis 缓存 · Postgres 会话 · 向量库检索",
+    nodes: ["AGENT", "VECDB", "DB"],
+    dives: [
+      {
+        id: "memory-deep",
+        title: "神经网络没有记忆，Agent 怎么记住你？",
+        source: "对话⑥",
+        blocks: [
+          { kind: "p", text: "模型每次推理都是无状态的：输入一组 token，输出一组 token，结束即丢弃。但 Agent 通过外部记忆机制，在模型外部模拟出了「记忆」。" },
+          { kind: "p", text: "先区分两种「记忆」——" },
+          { kind: "list", items: [
+            "参数记忆：训练时固化在权重里的知识（如「北京是中国首都」），静态、全局、不可按用户更新",
+            "上下文记忆：把历史信息放进模型输入上下文，动态、会话级、可随时修改",
+          ] },
+          { kind: "p", text: "Agent 记忆的核心工作流：写入（抽取/总结/存储）→ 读取（按当前问题检索）→ 注入（拼进 prompt）。长期记忆的五种常见形态：" },
+          { kind: "list", items: [
+            "摘要记忆：LLM 定期压缩历史对话，如「用户偏好简洁回答；最近在问 Python」",
+            "向量记忆：对话片段向量化入库，提问时语义检索——「我的猫叫什么？」能找到「猫叫 Luna」",
+            "结构化记忆：实体关系入图数据库，「用户A → 住在 → 北京」，可精确查询",
+            "用户画像：职业/兴趣/语言风格，以键值对注入系统提示",
+            "情景记忆：完整事件序列（观察-思考-行动），供反思与规划复用",
+          ] },
+          { kind: "p", text: "仅有存储还不够：写入策略（什么值得记）、检索策略（向量相似度+时间衰减）、更新策略（新旧冲突合并）、遗忘机制（删除过时信息）、压缩摘要（适配上下文窗口）——这些由 harness 或专门的 memory 模块管理。" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "CONTEXT",
+    name: "上下文组装",
+    body: "Harness 把所有材料拼成一次完整的模型输入：系统提示词、工具定义（JSON Schema）、历史消息、刚加载的记忆，以及 RAG 检索结果——先把你的问题变成向量，在向量库里找出语义最相关的文档片段，一起塞进上下文。",
+    badge: "1× 服务进程",
+    badgeDetail: "内存中拼接 · prompt ≈ 数 KB ~ 数十 KB",
+    nodes: ["AGENT", "VECDB"],
+    dives: [
+      {
+        id: "harness-deep",
+        title: "Harness 到底是什么？",
+        source: "对话②",
+        blocks: [
+          { kind: "quote", text: "Harness 就是 Agent 的执行引擎：它把「调用模型 → 解析输出 → 执行工具 → 回填结果 → 再调用模型」这个循环自动化地管理起来。" },
+          { kind: "p", text: "Harness（Agent 运行时/编排层）不是一个小模块，而是驱动整个执行流程的调度中心，覆盖：" },
+          { kind: "list", items: [
+            "上下文组装：注入系统提示、拼接历史、添加工具定义、插入检索与记忆片段",
+            "模型推理调度：调用 LLM API、处理流式响应、解析输出、超时重试",
+            "工具调用循环（最核心）：解析→校验→执行→回填→再调用，实现 ReAct / Function Calling 范式",
+            "后处理与安全：内容过滤、格式转换、脱敏",
+            "流式输出管理：token 逐个转发、中间状态提示",
+            "错误处理：模型失败重试、工具异常降级、超长上下文自动压缩",
+          ] },
+          { kind: "p", text: "没有 harness，模型只会输出一段文本，不会自动去调用工具并继续推理。它位于接入层之后、外部工具之前，是连接模型、工具、记忆和用户请求的中央调度器。" },
+        ],
+      },
+      {
+        id: "embed-deep",
+        title: "「问题向量化」是什么？",
+        source: "对话③",
+        blocks: [
+          { kind: "p", text: "把用户问题用嵌入模型（Embedding Model）转换成高维数值向量（常见 768 / 1024 / 1536 维），让「文字问题」变成「机器能计算相似度的数字表示」。" },
+          { kind: "p", text: "为什么需要它：关键词搜索只能匹配字面——用户问「怎么退款」，文档写「如何申请退货」，就找不到。向量化后语义相近的句子距离更近，用词不同也能检索到。" },
+          { kind: "p", text: "流程：文本 → tokenize → 嵌入模型前向计算 → 输出向量，例如：" },
+          { kind: "code", lang: "text", code: `"北京明天天气怎么样？" → [0.012, -0.034, 0.221, ..., 0.087]  (1024维)` },
+          { kind: "p", text: "随后以该向量为查询，在向量数据库（FAISS / Milvus / Pinecone）中做近似最近邻搜索（ANN），取余弦相似度最高的若干文档片段注入上下文。常见嵌入模型：text-embedding-3、bge-large-zh、m3e-base。" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "MODEL",
+    name: "模型推理",
+    body: "拼好的上下文被送往 GPU 集群。LLM 是基于 Transformer 的超大规模深度神经网络，它只做一件事：接收 token 序列，逐个预测下一个 token。它没有跨请求的记忆，也不会主动调用任何工具——只输出文本，或一个工具调用指令。",
+    badge: "~1000× GPU",
+    badgeDetail: "70B 参数 ≈ 140GB 显存 · 单 token ≈ 10¹¹ FLOPs",
+    nodes: ["GPU"],
+    dives: [
+      {
+        id: "llm-nn",
+        title: "LLM 是神经网络吗？",
+        source: "对话⑤",
+        blocks: [
+          { kind: "p", text: "是。LLM 是神经网络的一种——基于 Transformer 架构的深度神经网络。" },
+          { kind: "quote", text: "LLM = 基于 Transformer 的深度神经网络 + 超大规模参数 + 海量文本训练" },
+          { kind: "list", items: [
+            "由多层 Transformer 块堆叠（GPT-3 有 96 层）",
+            "数亿到数万亿可学习权重，靠反向传播 + 梯度下降训练",
+            "核心机制是自注意力（Self-Attention），高效建模长距离依赖",
+            "神经网络家族还包括 CNN（视觉）、RNN（序列）、强化学习网络（游戏 AI）——LLM 是其中专攻语言的超大规模成员",
+          ] },
+        ],
+      },
+      {
+        id: "nn-vs-math",
+        title: "神经网络预测 vs 数学模型",
+        source: "对话④",
+        blocks: [
+          { kind: "p", text: "神经网络本身就是一种数学模型，区别在于形式与构建方式——" },
+          { kind: "table", headers: ["维度", "传统数学模型", "神经网络"], rows: [
+            ["构建方式", "人根据物理规律/统计假设手动设计公式（F=ma、SIR）", "结构人设计，权重由数据驱动自动学习"],
+            ["可解释性", "白盒：参数有明确物理/统计含义", "黑盒：数百万参数无直观含义"],
+            ["数据需求", "结构正确时小样本即可，物理定律甚至零数据", "需要大量标注数据，否则过拟合"],
+            ["表达能力", "受限于预设公式形式", "万能近似：可逼近任意复杂连续函数"],
+            ["泛化鲁棒性", "假设范围内外推能力强", "擅长内插，对分布偏移/对抗扰动敏感"],
+            ["典型场景", "物理仿真、统计推断", "图像、语音、自然语言等高维非线性任务"],
+          ] },
+          { kind: "p", text: "两者常结合使用：物理信息神经网络（PINN）把物理定律作为先验注入网络训练。" },
+        ],
+      },
+      {
+        id: "thinking",
+        title: "彩蛋：模型在「想」什么",
+        source: "对话⑦注",
+        blocks: [
+          { kind: "p", text: "在输出答案之前，很多模型会先生成一段「思维链」——给自己写的推理草稿：拆解问题、回忆相关概念、规划答案结构。你在原始对话里看到的「Thought for N seconds」就是它。" },
+          { kind: "p", text: "本站的流程图中暂未把它画成独立站点（待核对完整流程后可补充）：它发生在 MODEL 内部，消耗的也是同一批 GPU 的 token 生成算力。" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "TOOLS",
+    name: "工具调用 · 循环",
+    body: "模型说「我需要查一下天气」。Harness 接管：解析参数、检查权限、执行工具、把结果回填上下文、再次调用模型。这个循环可能重复多次——一次请求，N 次推理。注意：这不是固定的九步管线，任何环节都可能被扩展、跳过或反复进入。",
+    badge: "1×+ 外部进程",
+    badgeDetail: "第三方 API / 代码沙箱 / 数据库 · 循环次数不固定",
+    nodes: ["TOOLS", "GPU", "AGENT"],
+    loopsTo: "MODEL",
+    dives: [
+      {
+        id: "skills-deep",
+        title: "Skills 在哪一层？",
+        source: "对话⑧",
+        blocks: [
+          { kind: "p", text: "Skill 是封装好的完整能力单元：专门的提示词 + 一组相关工具 + 预设工作流 + 参数 schema（甚至本地脚本）。例如「发送邮件」这个 Skill 内部包含校验收件人、调用邮件 API、失败重试等多个步骤。" },
+          { kind: "p", text: "它横跨三个环节：上下文组装（注入 Skill 列表让模型知道有哪些能力）→ 模型推理（选择 Skill 并填参数）→ Harness 执行（加载定义，展开内部子流程，可能嵌套多次工具调用甚至另一个 Skill）。" },
+          { kind: "table", headers: ["对比项", "Tool（工具）", "Skill（技能）"], rows: [
+            ["粒度", "单一功能，如查天气 API", "复合能力，如「规划旅行」= 查天气+订酒店+路线"],
+            ["执行方式", "一次 API 调用", "多步推理、多个工具、条件分支"],
+            ["模型交互", "模型直接调用工具", "模型调用 Skill，Skill 内部再组织工具"],
+            ["可复用性", "通用但简单", "面向特定任务，封装领域知识"],
+          ] },
+          { kind: "p", text: "所以 Skills 位于工具调用循环的「上层」——不是流程中的独立阶段，而是对上下文组装到工具执行这段的增强与抽象。" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "SAFETY",
+    name: "后处理",
+    body: "最终回复生成后，还要过一道安检：安全审核检查违规内容，敏感信息脱敏，Markdown 转换成前端格式，检索来源附加引用标注。不通过的回复可能触发重新生成，或被替换为安全提示。",
+    badge: "1× 审核服务",
+    badgeDetail: "规则引擎 + 分类小模型 · 毫秒级",
+    nodes: ["AGENT"],
+    dives: [],
+  },
+  {
+    id: "STREAM",
+    name: "流式返回",
+    body: "回复不是等全部生成完才给你。SSE 或 WebSocket 把 token 逐个推过网关、回到客户端；工具执行阶段你会看到「正在查询…」的中间状态。你看到的逐字浮现，就是此刻正在发生的事。",
+    badge: "1× SSE 连接",
+    badgeDetail: "KB 级流量 · 客户端逐 token 渲染",
+    nodes: ["GATEWAY", "CLIENT"],
+    dives: [],
+  },
+  {
+    id: "PERSIST",
+    name: "持久化",
+    body: "收尾工作决定下一次对话的质量：保存本轮消息、更新对话摘要、提取重要事实写入长期记忆和向量库、记录工具调用日志与耗时。这一步的「写入」，正是第 3 站「读取」的来源——记忆的闭环。",
+    badge: "行级写入 ×N",
+    badgeDetail: "会话表 · 摘要 · 向量库 · 日志埋点",
+    nodes: ["DB", "VECDB"],
+    dives: [],
+  },
+];
+
+export const outro: Block[] = [
+  { kind: "p", text: "一次请求的本质：无状态的神经网络（LLM）在 Harness 的调度下，通过外部记忆系统模拟「记住」，通过 RAG 向量检索获取知识，通过工具调用扩展能力，最终生成回复。" },
+  { kind: "list", items: [
+    "Harness 是让这一切自动运转的引擎",
+    "记忆是外部存储 + 上下文注入的产物",
+    "RAG 是语义检索增强",
+    "LLM 只是计算核心，没有任何状态",
+  ] },
+];
+
+export const siteMeta = {
+  title: "Agent Notebook",
+  subtitle: "一条用户消息的完整生命周期",
+  credit: "内容整理自与 DeepSeek 的 8 组对话",
+  creditUrl: "https://chat.deepseek.com/share/vki6orvo1y2x40op79",
+  designNote: "视觉设计参考 200ms.thenodebook.com",
+  designUrl: "https://200ms.thenodebook.com/",
+};
