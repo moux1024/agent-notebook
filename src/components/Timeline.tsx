@@ -1,7 +1,7 @@
 import { steps } from "../content/steps";
 
 /**
- * 底部固定时间线：站点刻度 + 进度光点 + TOOLS→MODEL 回路弧 + 可扩展提示「…」
+ * 底部固定时间线：站点刻度 + 进度光点 + TOOLS→MODEL 回路弧
  */
 export default function Timeline({
   active,
