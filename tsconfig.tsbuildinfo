@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/components/deepdive.tsx","./src/components/hero.tsx","./src/components/outro.tsx","./src/components/reveal.tsx","./src/components/stepsection.tsx","./src/components/timeline.tsx","./src/components/topbar.tsx","./src/components/topologystrip.tsx","./src/content/steps.ts","./src/hooks/usestepprogress.ts"],"version":"5.9.3"}
