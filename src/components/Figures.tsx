@@ -1,13 +1,17 @@
 /**
- * 卡片内示意图（进度驱动：滚动贯穿 section 时逐步点亮序列）
+ * 卡片内示意图（进度驱动：图元素自身的视口穿越，逐步点亮序列）
  * - AnnIndexFigure：向量索引检索（三层结构 + 命中路径逐个点亮 + 规模芯片）
  * - OutStackFigure：出栈分层（rail 随进度延伸，七层自上而下依次激活）
+ *
+ * 进度锚定在图元素自身而非所在 section：图下方内容伸缩（深潜展开）
+ * 不改变图自身的位置，动效状态因此保持稳定。
  */
-import { window_ } from "../hooks/useSectionProgress";
+import { useElementProgress, window_ } from "../hooks/useSectionProgress";
 
-export function AnnIndexFigure({ p }: { p: number }) {
-  // 示意图序列窗口：卡片完全可见后开始，离开前结束
-  const q = window_(p, 0.28, 0.82);
+export function AnnIndexFigure() {
+  const { ref, p } = useElementProgress<HTMLElement>();
+  // 序列窗口：图进入视口即开始，图顶部越过视口中线前完成
+  const q = window_(p, 0.1, 0.48);
   const levels: { label: string; note: string; boxes: number; hits: number[] }[] = [
     { label: "入口层", note: "查询向量先与 1,024 个簇中心比对", boxes: 11, hits: [5] },
     { label: "聚类层", note: "top-2 簇 · 簇内 ≈1,200 块", boxes: 17, hits: [4, 11] },
@@ -15,7 +19,7 @@ export function AnnIndexFigure({ p }: { p: number }) {
   ];
 
   return (
-    <figure className="fig ann">
+    <figure className="fig ann" ref={ref}>
       <div className="fig-title">the index · 向量检索的下降路径</div>
       <div className="fig-sub">ANN 索引 · ≈1.2M 文档块 · 只触碰其中一小撮</div>
       <div className="ann-query">
@@ -56,8 +60,9 @@ export function AnnIndexFigure({ p }: { p: number }) {
   );
 }
 
-export function OutStackFigure({ p }: { p: number }) {
-  const q = window_(p, 0.28, 0.82);
+export function OutStackFigure() {
+  const { ref, p } = useElementProgress<HTMLElement>();
+  const q = window_(p, 0.1, 0.48);
   const layers: { name: string; what: string; scale: string }[] = [
     { name: "gpu 集群", what: "逐 token 采样，概率分布 → 下一个字", scale: "10¹¹ FLOPs / token" },
     { name: "harness", what: "组帧为 SSE 事件", scale: 'data: {"token":"北"}' },
@@ -70,7 +75,7 @@ export function OutStackFigure({ p }: { p: number }) {
   const rail = Math.min(1, Math.max(0, (q - 0.05) / 0.75));
 
   return (
-    <figure className="fig stack">
+    <figure className="fig stack" ref={ref}>
       <div className="fig-title">out of the machine, top to bottom</div>
       <div className="fig-sub">一个 token 离开 GPU，穿越每一层回到你的屏幕</div>
       <div className="stack-layers">

@@ -77,8 +77,8 @@ export default function StepSection({
             </div>
           )}
 
-          {step.figure === "ann-index" && <AnnIndexFigure p={p} />}
-          {step.figure === "out-stack" && <OutStackFigure p={p} />}
+          {step.figure === "ann-index" && <AnnIndexFigure />}
+          {step.figure === "out-stack" && <OutStackFigure />}
 
           {step.loopsTo && (
             <div className="loop-chip">
