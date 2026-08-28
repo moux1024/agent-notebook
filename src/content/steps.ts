@@ -79,7 +79,7 @@ export const steps: Step[] = [
             code: `{
   "conversation_id": "sess_a1b2c3",
   "message": "帮我查一下北京明天的天气",
-  "auth": "Bearer eyJhbGci..."
+  "stream": true
 }`,
           },
         ],
@@ -101,11 +101,11 @@ export const steps: Step[] = [
           { kind: "p", text: "请求到达网关后、进入 Agent 服务前，会经过一条固定流水线：" },
           { kind: "list", items: [
             "TLS 终结：网关持证书解密 HTTPS，内网以明文或 mTLS 转发",
-            "鉴权：本地校验 JWT 签名或 API key（不查库，微秒级）",
+            "鉴权：JWT 本地验签（不查库，微秒级）；API key 则比对缓存中的合法名单或黑名单",
             "限流：令牌桶 / 滑动窗口，按用户或 key 维度计数，超限直接返回 429",
             "路由：按 conversation_id 做会话粘性（一致性哈希），同一会话落到同一 Agent 实例，本地缓存的历史不必重拉",
           ] },
-          { kind: "code", lang: "http", code: `GET /v1/chat HTTP/1.1
+          { kind: "code", lang: "http", code: `POST /v1/chat HTTP/1.1
 Authorization: Bearer eyJhbGci...
 X-Session-Id: sess_a1b2c3` },
           { kind: "p", text: "这一层的意义：把「你是谁、允不允许、转发给谁」从业务逻辑里剥离——Agent 服务收到的请求已经是干净、可信、带着会话锚点的。" },
@@ -196,7 +196,7 @@ X-Session-Id: sess_a1b2c3` },
         ["Kimi K2.5", "1T", "32B（MoE · 多模态 agentic）"],
         ["GLM-5", "744B", "40B（MoE）"],
         ["Qwen3.5-397B-A17B", "397B", "17B（MoE · Apache 2.0）"],
-        ["MiniMax-M2.5", "229B", "10B（MoE · 10B 激活即达 SOTA 级编码）"],
+        ["MiniMax-M2.5", "229B", "10B（MoE · 10B 激活即接近 SOTA 编码水准）"],
       ],
     },
     nodes: ["GPU"],

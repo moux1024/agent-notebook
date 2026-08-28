@@ -1,13 +1,11 @@
-# 模块间距减半 + 部署收尾
+# 修复知识性审查发现的 5 处问题
 
-## 改动（1 处 CSS）
-`src/styles/global.css` 中 `.step-section`：
-- `min-height: 112vh` → `56vh`
+全部为 src/content/steps.ts 单文件改动：
 
-效果：小卡片对（INPUT/GATEWAY 等矮卡）之间的空隙从 ~55-60vh 缩到 ≈8vh（仅剩上下 padding）；高卡片（CONTEXT 带图等）本来就贴边，节奏整体变密。相邻卡片仍在视口内重叠，交叉溶解动效保留（进度锚定卡片自身，不受间距影响）。
+1. **GATEWAY 深潜**：HTTP 示例 `GET /v1/chat` → `POST /v1/chat`（发送消息必为 POST）
+2. **INPUT 深潜**：JSON 示例移除 body 内的 `auth` 字段（凭证应在请求头），替换为 `"stream": true`
+3. **STREAM 出栈图**（Figures.tsx）：交换第 3/4 层职责——agent 进程改为「TLS 库加密（用户态）· 1 条 record · 数十 B」，内核改为「写入 socket 缓冲区，分段发出 · 1× write() 系统调用」（标准 TLS 在用户态加密，内核仅缓冲分段）
+4. **GATEWAY 深潜鉴权项**：JWT 本地验签（不查库）与 API key 查缓存比对分开表述
+5. **MODEL 参数表**：MiniMax-M2.5 行「10B 激活即达 SOTA 级编码」→「10B 激活即接近 SOTA 编码水准」
 
-## 验证
-1. 本地构建 + 浏览器确认新间距与过渡效果（给你截图看）
-2. 若满意 → 推送（连同上一个未推的交叉溶解提交 `39363c6`），等 Actions 部署，curl 验证线上
-
-若觉得过密，可再回调（如 84vh = 原 112vh 与 56vh 之间）。
+完成后 npm run build 验证 + 本地浏览器抽检出栈图新层次 → git commit（不推送，间距提交仍在等确认）。

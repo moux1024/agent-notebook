@@ -66,8 +66,8 @@ export function OutStackFigure() {
   const layers: { name: string; what: string; scale: string }[] = [
     { name: "gpu 集群", what: "逐 token 采样，概率分布 → 下一个字", scale: "10¹¹ FLOPs / token" },
     { name: "harness", what: "组帧为 SSE 事件", scale: 'data: {"token":"北"}' },
-    { name: "agent 进程", what: "写入 socket 缓冲区", scale: "1× write() 系统调用" },
-    { name: "内核", what: "TLS 加密后发出", scale: "1 条 record · 数十 B" },
+    { name: "agent 进程", what: "TLS 库加密（用户态）", scale: "1 条 record · 数十 B" },
+    { name: "内核", what: "写入 socket 缓冲区，分段发出", scale: "1× write() 系统调用" },
     { name: "网关", what: "透传事件流，不等完整回复", scale: "流式 · 零缓冲" },
     { name: "互联网", what: "长连接隧道回到客户端", scale: "数十 ms · 跨城" },
     { name: "客户端", what: "逐 token 渲染，文字逐字浮现", scale: "1× 浏览器进程" },
