@@ -95,7 +95,26 @@ export const steps: Step[] = [
     badge: "1× 网关实例",
     badgeDetail: "Envoy/Nginx · TLS 终结 · 毫秒级",
     nodes: ["GATEWAY"],
-    dives: [],
+    dives: [
+      {
+        id: "gateway-pipeline",
+        title: "网关的一毫秒里发生了什么",
+        source: "对话①·延伸",
+        blocks: [
+          { kind: "p", text: "请求到达网关后、进入 Agent 服务前，会经过一条固定流水线：" },
+          { kind: "list", items: [
+            "TLS 终结：网关持证书解密 HTTPS，内网以明文或 mTLS 转发",
+            "鉴权：本地校验 JWT 签名或 API key（不查库，微秒级）",
+            "限流：令牌桶 / 滑动窗口，按用户或 key 维度计数，超限直接返回 429",
+            "路由：按 conversation_id 做会话粘性（一致性哈希），同一会话落到同一 Agent 实例，本地缓存的历史不必重拉",
+          ] },
+          { kind: "code", lang: "http", code: `GET /v1/chat HTTP/1.1
+Authorization: Bearer eyJhbGci...
+X-Session-Id: sess_a1b2c3` },
+          { kind: "p", text: "这一层的意义：把「你是谁、允不允许、转发给谁」从业务逻辑里剥离——Agent 服务收到的请求已经是干净、可信、带着会话锚点的。" },
+        ],
+      },
+    ],
   },
   {
     id: "MEMORY",
@@ -265,7 +284,22 @@ export const steps: Step[] = [
     badge: "1× 审核服务",
     badgeDetail: "规则引擎 + 分类小模型 · 毫秒级",
     nodes: ["AGENT"],
-    dives: [],
+    dives: [
+      {
+        id: "safety-pipeline",
+        title: "后处理流水线的四道工序",
+        source: "对话①·延伸",
+        blocks: [
+          { kind: "list", items: [
+            "安全审核：规则引擎 + 小型分类模型扫描最终文本，命中违规类别则拦截或触发重写",
+            "脱敏：正则 + 命名实体识别找出手机号、邮箱、证件号等 PII，替换或掩码",
+            "格式转换：Markdown → 前端渲染树，代码块转高亮结构",
+            "引用标注：把 RAG 命中的文档 ID 附成脚注，让结论可溯源",
+          ] },
+          { kind: "p", text: "这一层通常是无状态微服务，毫秒级开销；不通过的内容可能整段重新生成——偶发的「回答变慢」，有时就是在这里被打回重写了。" },
+        ],
+      },
+    ],
   },
   {
     id: "STREAM",
@@ -275,7 +309,39 @@ export const steps: Step[] = [
     badgeDetail: "KB 级流量 · 客户端逐 token 渲染",
     figure: "out-stack",
     nodes: ["GATEWAY", "CLIENT"],
-    dives: [],
+    dives: [
+      {
+        id: "sse-wire",
+        title: "SSE 事件流长什么样",
+        source: "延伸",
+        blocks: [
+          { kind: "p", text: "主流方案是 SSE（Server-Sent Events）：单向、基于普通 HTTP、断线自动重连，比 WebSocket 轻得多。只有需要客户端主动上行（如中途打断生成）才升级到 WebSocket。" },
+          { kind: "code", lang: "text", code: `event: token
+data: {"delta":"北"}
+
+event: status
+data: {"tool":"search_weather","state":"running"}
+
+event: done
+data: [DONE]` },
+          { kind: "p", text: "工具调用阶段的中间状态也走同一条连接：你在界面上看到的「正在查询…」，就是服务端推来的一条 status 事件，而不是客户端轮询的结果。" },
+        ],
+      },
+      {
+        id: "ttft",
+        title: "为什么要流式：TTFT 与总时长的博弈",
+        source: "延伸",
+        blocks: [
+          { kind: "p", text: "非流式下，你要等全部 token 生成完（比如 2.7s）才看到第一个字。流式把「首字时间（TTFT）」提前到模型吐出第一个 token 的时刻（几百毫秒），感知速度提升数倍——总时长没变，等待体验完全不同。" },
+          { kind: "p", text: "几个工程细节：" },
+          { kind: "list", items: [
+            "客户端按渲染帧（约 16ms）批量 append 已到达的 token，避免逐字符重排",
+            "网关必须关闭响应缓冲（如 X-Accel-Buffering: no），否则事件会被攒成一坨再发出",
+            "空闲连接靠注释行/心跳保活，穿过企业代理的长连接空闲超时一般在 30~60 秒",
+          ] },
+        ],
+      },
+    ],
   },
   {
     id: "PERSIST",
@@ -284,7 +350,37 @@ export const steps: Step[] = [
     badge: "行级写入 ×N",
     badgeDetail: "会话表 · 摘要 · 向量库 · 日志埋点",
     nodes: ["DB", "VECDB"],
-    dives: [],
+    dives: [
+      {
+        id: "persist-writes",
+        title: "一轮对话结束后，写入了什么",
+        source: "对话①·⑥",
+        blocks: [
+          { kind: "p", text: "回复返回用户后，Agent 的收尾写入通常有四类：" },
+          { kind: "table", headers: ["写入内容", "去向", "下一次的用途"], rows: [
+            ["会话消息原文", "会话表（Postgres）", "第 3 站的短期记忆"],
+            ["对话摘要", "摘要表 / 缓存", "超长历史的压缩替代"],
+            ["事实与偏好", "向量库 + 用户画像", "语义检索式长期记忆"],
+            ["工具调用日志 · 耗时", "日志 / 埋点系统", "观测、计费与优化"],
+          ] },
+          { kind: "p", text: "这些写入多数是异步的（先返回、后台落库），用户不会为持久化多等一毫秒。" },
+        ],
+      },
+      {
+        id: "memory-loop",
+        title: "记忆闭环：读与写的对偶",
+        source: "对话⑥·⑦",
+        blocks: [
+          { kind: "p", text: "把第 3 站（MEMORY 读取）和这一站（PERSIST 写入）对齐看，才是完整的记忆系统：" },
+          { kind: "list", items: [
+            "读取（第 3 站）：最近 N 轮原文 + 摘要 + 向量检索 + 画像 → 组装进上下文",
+            "写入（本站）：原文落库 → 摘要定时或超长触发更新 → 事实抽取进向量库 → 画像字段合并",
+          ] },
+          { kind: "p", text: "摘要通常由 LLM 自己生成（每 N 轮、或上下文逼近窗口上限时触发），本质是「用一次便宜的推理，换取之后每一轮都省窗口」；向量写入则把对话片段 embedding 后入库，供未来的语义检索命中。" },
+          { kind: "quote", text: "第 3 站读到的每一条，都是此前某一轮在这里写入的。" },
+        ],
+      },
+    ],
   },
 ];
 
