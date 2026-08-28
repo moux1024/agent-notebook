@@ -47,11 +47,6 @@ export default function Timeline({
         </button>
       ))}
 
-      <span className="tl-more" style={{ left: "100%" }} title="流程可扩展：站点不是固定的" aria-hidden>
-        <span className="tl-tick" />
-        <span className="tl-name">…</span>
-      </span>
-
       <span className="tl-dot" style={{ left: `${fraction * 100}%` }} aria-hidden />
     </div>
   );

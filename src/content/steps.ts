@@ -1,13 +1,8 @@
 /**
  * Agent Notebook 内容数据
  *
- * 九个站点 = 一条用户消息在 Agent 系统中的生命周期。
- * 深潜（dive）承载原始 8 组 DeepSeek 对话中的概念详解。
- *
- * 内容修订指南：
- * - 这里的流程不是固定管线：增删站点改 steps 数组即可，拓扑带/时间线自动跟随
- * - 已知缺口（待后续核对完整流程时补充）：思维链（thinking）环节仅在 MODEL 站作为彩蛋提及，
- *   若完整流程中它应是独立站点，可在 MODEL 前插入新 step
+ * 站点 = 一条用户消息在 Agent 系统中的生命周期；深潜（dive）承载概念详解。
+ * 内容为数据驱动：增删站点改 steps 数组即可，时间线/拓扑带自动跟随。
  */
 
 export type TopologyNodeId =
@@ -55,8 +50,12 @@ export interface Step {
   body: string;
   badge: string;
   badgeDetail: string;
+  /** 卡片内直接展示的参数表（不折叠） */
+  params?: { headers: string[]; rows: string[][] };
+  /** 卡片内示意图：ann-index = 向量索引检索；out-stack = 出栈分层 */
+  figure?: "ann-index" | "out-stack";
   nodes: TopologyNodeId[];
-  /** 回路：此站点之后流程可能跳回的目标站点（体现"可扩展循环"而非固定管线） */
+  /** 回路：此站点之后流程跳回的目标站点 */
   loopsTo?: string;
   dives: Dive[];
 }
@@ -136,6 +135,7 @@ export const steps: Step[] = [
     body: "Harness 把所有材料拼成一次完整的模型输入：系统提示词、工具定义（JSON Schema）、历史消息、刚加载的记忆，以及 RAG 检索结果——先把你的问题变成向量，在向量库里找出语义最相关的文档片段，一起塞进上下文。",
     badge: "1× 服务进程",
     badgeDetail: "内存中拼接 · prompt ≈ 数 KB ~ 数十 KB",
+    figure: "ann-index",
     nodes: ["AGENT", "VECDB"],
     dives: [
       {
@@ -175,7 +175,17 @@ export const steps: Step[] = [
     name: "模型推理",
     body: "拼好的上下文被送往 GPU 集群。LLM 是基于 Transformer 的超大规模深度神经网络，它只做一件事：接收 token 序列，逐个预测下一个 token。它没有跨请求的记忆，也不会主动调用任何工具——只输出文本，或一个工具调用指令。",
     badge: "~1000× GPU",
-    badgeDetail: "70B 参数 ≈ 140GB 显存 · 单 token ≈ 10¹¹ FLOPs",
+    badgeDetail: "以 DeepSeek-V3 为例：671B 权重 · FP8 ≈ 700GB 显存 · 单 token 激活 37B 参数",
+    params: {
+      headers: ["模型", "参数规模", "激活参数/推理"],
+      rows: [
+        ["DeepSeek-V3 / R1", "671B", "37B（MoE，每 token 激活约 5.5%）"],
+        ["Kimi K2", "1T", "32B（MoE）"],
+        ["GLM-4.5", "355B", "32B（MoE）"],
+        ["Qwen3-235B-A22B", "235B", "22B（MoE）"],
+        ["Llama 3.1 405B", "405B", "405B（稠密，全量激活）"],
+      ],
+    },
     nodes: ["GPU"],
     dives: [
       {
@@ -213,10 +223,10 @@ export const steps: Step[] = [
       {
         id: "thinking",
         title: "彩蛋：模型在「想」什么",
-        source: "对话⑦注",
+        source: "对话⑦",
         blocks: [
-          { kind: "p", text: "在输出答案之前，很多模型会先生成一段「思维链」——给自己写的推理草稿：拆解问题、回忆相关概念、规划答案结构。你在原始对话里看到的「Thought for N seconds」就是它。" },
-          { kind: "p", text: "本站的流程图中暂未把它画成独立站点（待核对完整流程后可补充）：它发生在 MODEL 内部，消耗的也是同一批 GPU 的 token 生成算力。" },
+          { kind: "p", text: "在输出答案之前，很多模型会先生成一段「思维链」——给自己写的推理草稿：拆解问题、回忆相关概念、规划答案结构。对话界面上显示的「Thought for N seconds」就是它。" },
+          { kind: "p", text: "它发生在 MODEL 内部，消耗的也是同一批 GPU 的 token 生成算力；这段草稿通常不直接展示给用户，但会占用首 token 之前的那段时间。" },
         ],
       },
     ],
@@ -263,6 +273,7 @@ export const steps: Step[] = [
     body: "回复不是等全部生成完才给你。SSE 或 WebSocket 把 token 逐个推过网关、回到客户端；工具执行阶段你会看到「正在查询…」的中间状态。你看到的逐字浮现，就是此刻正在发生的事。",
     badge: "1× SSE 连接",
     badgeDetail: "KB 级流量 · 客户端逐 token 渲染",
+    figure: "out-stack",
     nodes: ["GATEWAY", "CLIENT"],
     dives: [],
   },
@@ -290,8 +301,4 @@ export const outro: Block[] = [
 export const siteMeta = {
   title: "Agent Notebook",
   subtitle: "一条用户消息的完整生命周期",
-  credit: "内容整理自与 DeepSeek 的 8 组对话",
-  creditUrl: "https://chat.deepseek.com/share/vki6orvo1y2x40op79",
-  designNote: "视觉设计参考 200ms.thenodebook.com",
-  designUrl: "https://200ms.thenodebook.com/",
 };

@@ -1,4 +1,4 @@
-import { outro, siteMeta } from "../content/steps";
+import { outro } from "../content/steps";
 import Reveal from "./Reveal";
 
 function OutroBlocks() {
@@ -33,14 +33,6 @@ export default function Outro() {
         </div>
       </Reveal>
       <div className="site-credit">
-        <a href={siteMeta.creditUrl} target="_blank" rel="noreferrer">
-          {siteMeta.credit}
-        </a>
-        <span className="credit-sep">·</span>
-        <a href={siteMeta.designUrl} target="_blank" rel="noreferrer">
-          {siteMeta.designNote}
-        </a>
-        <span className="credit-sep">·</span>
         <a href="https://github.com/moux1024/agent-notebook" target="_blank" rel="noreferrer">
           GitHub
         </a>

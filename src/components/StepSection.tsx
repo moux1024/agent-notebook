@@ -1,6 +1,7 @@
 import type { Step } from "../content/steps";
 import DeepDive from "./DeepDive";
 import Reveal from "./Reveal";
+import { AnnIndexFigure, OutStackFigure } from "./Figures";
 
 export default function StepSection({
   step,
@@ -30,9 +31,35 @@ export default function StepSection({
             <span className="badge-detail">{step.badgeDetail}</span>
           </div>
 
+          {step.params && (
+            <div className="table-wrap param-table">
+              <table>
+                <thead>
+                  <tr>
+                    {step.params.headers.map((h, j) => (
+                      <th key={j}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {step.params.rows.map((row, j) => (
+                    <tr key={j}>
+                      {row.map((cell, k) => (
+                        <td key={k}>{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {step.figure === "ann-index" && <AnnIndexFigure />}
+          {step.figure === "out-stack" && <OutStackFigure />}
+
           {step.loopsTo && (
-            <div className="loop-chip" title="流程不是固定管线，可循环可扩展">
-              <span className="loop-icon">↺</span> 跳回 {step.loopsTo} · 循环 ×N —— 这不是固定管线
+            <div className="loop-chip">
+              <span className="loop-icon">↺</span> 结果回填 → 再次调用 {step.loopsTo} · 循环 ×N
             </div>
           )}
 

@@ -13,7 +13,6 @@ export default function Hero() {
         <br />
         底部算力地图会告诉你：此刻计算发生在哪，动用了多大家伙。
       </p>
-      <p className="hero-note">↺ 这不是固定的九步管线——工具循环可反复进入，站点可扩展</p>
       <div className="hero-scroll" aria-hidden>
         <span className="hero-scroll-line" />
         SCROLL
