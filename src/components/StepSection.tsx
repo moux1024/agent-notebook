@@ -1,7 +1,20 @@
 import type { Step } from "../content/steps";
 import DeepDive from "./DeepDive";
-import Reveal from "./Reveal";
 import { AnnIndexFigure, OutStackFigure } from "./Figures";
+import { useSectionProgress } from "../hooks/useSectionProgress";
+
+/** 进度 → 卡片进场/停留/退场的连续变换：模块间交叉溶解 */
+function cardTransform(p: number): { opacity: number; transform: string } {
+  if (p < 0.2) {
+    const k = p / 0.2;
+    return { opacity: k, transform: `translate3d(0, ${64 * (1 - k)}px, 0)` };
+  }
+  if (p > 0.8) {
+    const k = (p - 0.8) / 0.2;
+    return { opacity: 1 - k, transform: `translate3d(0, ${-48 * k}px, 0)` };
+  }
+  return { opacity: 1, transform: "translate3d(0, 0, 0)" };
+}
 
 export default function StepSection({
   step,
@@ -12,9 +25,19 @@ export default function StepSection({
   index: number;
   registerRef: (i: number) => (el: HTMLElement | null) => void;
 }) {
+  const { ref, p } = useSectionProgress<HTMLElement>();
+  const style = cardTransform(p);
+
   return (
-    <section className="step-section" id={step.id} ref={registerRef(index)}>
-      <Reveal>
+    <section
+      className="step-section"
+      id={step.id}
+      ref={(el) => {
+        ref.current = el;
+        registerRef(index)(el);
+      }}
+    >
+      <div className="step-anim" style={style}>
         <article className="step-card">
           <header className="step-head">
             <span className="step-no">{String(index + 1).padStart(2, "0")}</span>
@@ -54,8 +77,8 @@ export default function StepSection({
             </div>
           )}
 
-          {step.figure === "ann-index" && <AnnIndexFigure />}
-          {step.figure === "out-stack" && <OutStackFigure />}
+          {step.figure === "ann-index" && <AnnIndexFigure p={p} />}
+          {step.figure === "out-stack" && <OutStackFigure p={p} />}
 
           {step.loopsTo && (
             <div className="loop-chip">
@@ -67,7 +90,7 @@ export default function StepSection({
             <DeepDive key={d.id} dive={d} />
           ))}
         </article>
-      </Reveal>
+      </div>
     </section>
   );
 }

@@ -1,18 +1,21 @@
 /* ============ Agent Notebook 全局样式 ============ */
+/* 动效配方：滚动进度驱动 + cubic-bezier(.22,.61,.36,1) */
 
 :root {
   --bg: #0b0c0e;
   --bg-soft: #101216;
   --panel: #12141a;
   --panel-edge: #1e222b;
+  --line: #232833;
   --text: #d6d9de;
   --muted: #878d99;
   --faint: #565c66;
   --accent: #a78bfa; /* violet */
   --accent2: #22d3ee; /* cyan */
   --grad: linear-gradient(90deg, #a78bfa, #22d3ee);
+  --ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --sans: var(--mono); /* 全站等宽基调，中文回退系统字体 */
+  --sans: var(--mono);
   --cn: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
 }
 
@@ -38,6 +41,25 @@ body {
   background-attachment: fixed;
 }
 
+/* 工程蓝图网格 */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(140, 150, 170, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(140, 150, 170, 0.045) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 90% 80% at 50% 50%, #000 30%, transparent 100%);
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
 ::selection {
   background: rgba(167, 139, 250, 0.35);
 }
@@ -46,13 +68,14 @@ a {
   color: var(--accent2);
   text-decoration: none;
   border-bottom: 1px dotted rgba(34, 211, 238, 0.4);
+  transition: color 0.6s var(--ease), border-color 0.6s var(--ease);
 }
 a:hover {
   border-bottom-style: solid;
 }
 
 main {
-  padding-bottom: 96px; /* 给底部 dock 留空间 */
+  padding-bottom: 96px;
 }
 
 /* ============ 顶栏 ============ */
@@ -85,16 +108,19 @@ main {
 
 .phase-no {
   color: var(--accent);
+  transition: color 0.6s var(--ease);
 }
 
 .phase-id {
   color: var(--text);
   font-weight: 600;
+  transition: color 0.6s var(--ease);
 }
 
 .phase-name {
   font-family: var(--cn);
   letter-spacing: 0.2em;
+  transition: color 0.6s var(--ease);
 }
 
 .phase-badge {
@@ -109,6 +135,7 @@ main {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 42vw;
+  transition: color 0.6s var(--ease), border-color 0.6s var(--ease);
 }
 
 .phase-hint {
@@ -134,6 +161,27 @@ main {
   padding: 0 24px;
 }
 
+.hero > * {
+  animation: heroIn 0.9s var(--ease) both;
+}
+
+.hero-kicker { animation-delay: 0.05s; }
+.hero-title { animation-delay: 0.15s; }
+.hero-sub { animation-delay: 0.3s; }
+.hero-desc { animation-delay: 0.45s; }
+.hero-scroll { animation-delay: 0.7s; }
+
+@keyframes heroIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .hero-kicker {
   color: var(--faint);
   font-size: 11px;
@@ -150,6 +198,7 @@ main {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  filter: drop-shadow(0 0 26px rgba(167, 139, 250, 0.25));
 }
 
 .hero-sub {
@@ -183,7 +232,7 @@ main {
   width: 1px;
   height: 46px;
   background: linear-gradient(180deg, var(--accent), transparent);
-  animation: scrollHint 2s ease-in-out infinite;
+  animation: scrollHint 2s var(--ease) infinite;
 }
 
 @keyframes scrollHint {
@@ -192,45 +241,56 @@ main {
   100% { transform: scaleY(0.3); transform-origin: bottom; opacity: 0.4; }
 }
 
-/* ============ 站点卡片 ============ */
+/* ============ 站点卡片（滚动驱动进出） ============ */
 
 .step-section {
-  min-height: 120vh;
+  min-height: 130vh;
   display: flex;
   align-items: center;
   padding: 6vh 24px;
 }
 
-.reveal {
+.step-anim {
   width: min(720px, 100%);
   margin: 0 auto;
-  opacity: 0;
-  transform: translateY(42px);
-  transition: opacity 0.7s ease, transform 0.7s ease;
-}
-
-.reveal.in-view {
-  opacity: 1;
-  transform: none;
+  will-change: opacity, transform;
+  transition: opacity 0.18s linear, transform 0.18s linear;
 }
 
 .step-card {
-  background: var(--panel);
+  background: linear-gradient(180deg, #14161d, var(--panel) 30%);
   border: 1px solid var(--panel-edge);
   border-radius: 14px;
   padding: 34px 36px 28px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.5),
+    0 8px 24px rgba(0, 0, 0, 0.35);
   position: relative;
   overflow: hidden;
+  transition: border-color 0.42s var(--ease), box-shadow 0.42s var(--ease);
 }
 
+.step-card:hover {
+  border-color: #2a303c;
+}
+
+/* 顶部渐变发丝线 */
 .step-card::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 4%, rgba(167, 139, 250, 0.55), rgba(34, 211, 238, 0.55), transparent 96%);
+}
+
+/* 左侧能量条 */
+.step-card::after {
+  content: "";
+  position: absolute;
+  inset: 14% 0 14% auto;
+  width: 2px;
   background: var(--grad);
-  opacity: 0.85;
+  opacity: 0.6;
 }
 
 .step-head {
@@ -246,6 +306,7 @@ main {
   color: transparent;
   -webkit-text-stroke: 1px var(--accent);
   letter-spacing: 0.05em;
+  transition: -webkit-text-stroke-color 0.6s var(--ease);
 }
 
 .step-title {
@@ -281,11 +342,12 @@ main {
   align-items: center;
   gap: 12px;
   flex-wrap: wrap;
-  border: 1px solid var(--panel-edge);
+  border: 1px solid var(--line);
   background: var(--bg-soft);
   border-radius: 10px;
   padding: 10px 14px;
   margin-bottom: 16px;
+  transition: border-color 0.42s var(--ease);
 }
 
 .badge-main {
@@ -324,6 +386,16 @@ main {
   to { transform: rotate(360deg); }
 }
 
+/* ============ 参数表 ============ */
+
+.param-table {
+  margin: 0 0 16px;
+}
+
+.param-table table {
+  min-width: 480px;
+}
+
 /* ============ 深潜 ============ */
 
 .dive {
@@ -353,10 +425,15 @@ main {
   color: var(--accent);
   width: 1em;
   flex: none;
+  transition: transform 0.42s var(--ease);
+}
+
+.dive.open .dive-arrow {
+  transform: rotate(90deg);
 }
 
 .dive-label {
-  transition: color 0.2s;
+  transition: color 0.42s var(--ease);
 }
 
 .dive-source {
@@ -374,11 +451,11 @@ main {
   padding: 4px 4px 20px 18px;
   border-left: 2px solid rgba(167, 139, 250, 0.35);
   margin: 0 0 4px 4px;
-  animation: diveIn 0.35s ease;
+  animation: diveIn 0.5s var(--ease);
 }
 
 @keyframes diveIn {
-  from { opacity: 0; transform: translateY(-6px); }
+  from { opacity: 0; transform: translate3d(0, -6px, 0); }
   to { opacity: 1; transform: none; }
 }
 
@@ -420,7 +497,7 @@ main {
 
 .dive-body pre {
   background: #0d0f13;
-  border: 1px solid var(--panel-edge);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 14px 16px;
   overflow-x: auto;
@@ -436,57 +513,85 @@ main {
 .table-wrap {
   overflow-x: auto;
   margin: 0 0 12px;
-  border: 1px solid var(--panel-edge);
+  border: 1px solid var(--line);
   border-radius: 8px;
 }
 
-.dive-body table {
+.dive-body table,
+.param-table table {
   border-collapse: collapse;
   width: 100%;
   font-size: 12.5px;
+}
+
+.dive-body table {
   min-width: 420px;
 }
 
-.dive-body th {
+th {
   font-family: var(--cn);
   text-align: left;
   color: var(--accent2);
   background: var(--bg-soft);
   padding: 9px 12px;
-  border-bottom: 1px solid var(--panel-edge);
+  border-bottom: 1px solid var(--line);
   white-space: nowrap;
 }
 
-.dive-body td {
+td {
   font-family: var(--cn);
   color: var(--muted);
   padding: 9px 12px;
   border-bottom: 1px solid rgba(30, 34, 43, 0.5);
   vertical-align: top;
+  transition: color 0.42s var(--ease), background-color 0.42s var(--ease);
 }
 
-.dive-body tr:last-child td {
+tr:last-child td {
   border-bottom: none;
 }
 
-/* ============ 卡片内参数表 ============ */
-
-.param-table {
-  margin: 0 0 16px;
+tr:hover td {
+  color: var(--text);
+  background: rgba(34, 211, 238, 0.03);
 }
 
-.param-table table {
-  min-width: 480px;
-}
-
-/* ============ 示意图通用 ============ */
+/* ============ 示意图（工程蓝图风） ============ */
 
 .fig {
   margin: 0 0 18px;
-  border: 1px solid var(--panel-edge);
-  border-radius: 10px;
-  background: #0d0f13;
-  padding: 16px 18px 14px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background:
+    linear-gradient(180deg, rgba(16, 18, 22, 0.6), #0d0f13),
+    #0d0f13;
+  padding: 18px 20px 16px;
+  position: relative;
+  /* 参考站的硬偏移阴影：工程示意图质感 */
+  box-shadow: 8px 8px 0 rgba(35, 40, 51, 0.55);
+}
+
+/* 蓝图角标 */
+.fig::before,
+.fig::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border: 1px solid rgba(167, 139, 250, 0.5);
+  transition: border-color 0.6s var(--ease);
+}
+.fig::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+.fig::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
 }
 
 .fig-title {
@@ -520,6 +625,14 @@ main {
   align-items: center;
   gap: 14px;
   margin-bottom: 10px;
+  opacity: 0;
+  transform: translate3d(-16px, 0, 0);
+  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+}
+
+.ann-level.in {
+  opacity: 1;
+  transform: none;
 }
 
 .ann-meta {
@@ -553,24 +666,33 @@ main {
 .ann-box {
   width: 13px;
   height: 13px;
-  border-radius: 3px;
+  border-radius: 2px;
   background: #191d25;
-  border: 1px solid #232833;
+  border: 1px solid var(--line);
+  transition: background 0.42s var(--ease), border-color 0.42s var(--ease),
+    box-shadow 0.42s var(--ease), transform 0.42s var(--ease);
 }
 
 .ann-box.hit {
-  background: rgba(167, 139, 250, 0.85);
+  border-color: rgba(167, 139, 250, 0.6);
+  background: #1c1a2e;
+}
+
+.ann-box.hit.lit {
+  background: rgba(167, 139, 250, 0.9);
   border-color: var(--accent);
-  box-shadow: 0 0 8px rgba(167, 139, 250, 0.7);
-  animation: hitPulse 2.2s ease-in-out infinite;
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.75);
+  transform: scale(1.18);
+  animation: hitPulse 2.4s var(--ease) infinite;
 }
 
 @keyframes hitPulse {
-  0%, 100% { box-shadow: 0 0 4px rgba(167, 139, 250, 0.4); }
-  50% { box-shadow: 0 0 12px rgba(34, 211, 238, 0.9); }
+  0%, 100% { box-shadow: 0 0 5px rgba(167, 139, 250, 0.45); }
+  50% { box-shadow: 0 0 14px rgba(34, 211, 238, 0.95); }
 }
 
-.ann-land {
+.ann-land,
+.stack-land {
   font-family: var(--cn);
   font-size: 12px;
   color: var(--accent2);
@@ -579,18 +701,37 @@ main {
   margin: 12px 0 10px;
   background: rgba(34, 211, 238, 0.05);
   border-radius: 0 6px 6px 0;
+  opacity: 0;
+  transform: translate3d(-10px, 0, 0);
+  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+}
+
+.ann-land.in,
+.stack-land.in {
+  opacity: 1;
+  transform: none;
+}
+
+.stack-land {
+  margin-top: 14px;
 }
 
 .fig-chips {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease);
+}
+
+.fig-chips.in {
+  opacity: 1;
 }
 
 .fig-chips span {
   font-size: 10.5px;
   color: var(--muted);
-  border: 1px solid var(--panel-edge);
+  border: 1px solid var(--line);
   border-radius: 999px;
   padding: 2px 10px;
   font-family: var(--cn);
@@ -600,9 +741,10 @@ main {
 
 .stack-layers {
   position: relative;
-  padding-left: 20px;
+  padding-left: 24px;
 }
 
+/* 底轨 */
 .stack-layers::before {
   content: "";
   position: absolute;
@@ -611,15 +753,19 @@ main {
   bottom: 4px;
   width: 2px;
   border-radius: 2px;
-  background: linear-gradient(180deg, var(--accent), var(--accent2), var(--accent));
-  background-size: 100% 300%;
-  animation: railFlow 3s linear infinite;
-  opacity: 0.8;
+  background: var(--line);
 }
 
-@keyframes railFlow {
-  0% { background-position: 0 0; }
-  100% { background-position: 0 300%; }
+/* 进度导轨 */
+.stack-rail {
+  position: absolute;
+  left: 5px;
+  top: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent), var(--accent2));
+  box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+  transition: height 0.18s linear;
 }
 
 .stack-layer {
@@ -631,25 +777,36 @@ main {
   padding: 7px 10px;
   border: 1px solid transparent;
   border-radius: 8px;
-  transition: border-color 0.3s, background 0.3s;
-}
-
-.stack-layer:hover {
-  border-color: var(--panel-edge);
-  background: rgba(18, 20, 26, 0.6);
+  opacity: 0.38;
+  transform: translate3d(0, 4px, 0);
+  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease),
+    border-color 0.42s var(--ease), background 0.42s var(--ease);
 }
 
 .stack-layer::before {
   content: "";
   position: absolute;
-  left: -18px;
+  left: -22px;
   top: 50%;
   width: 7px;
   height: 7px;
   border-radius: 50%;
   transform: translateY(-50%);
   background: var(--bg);
-  border: 2px solid var(--accent2);
+  border: 2px solid var(--faint);
+  transition: border-color 0.42s var(--ease), box-shadow 0.42s var(--ease);
+}
+
+.stack-layer.on {
+  opacity: 1;
+  transform: none;
+  border-color: rgba(34, 211, 238, 0.25);
+  background: rgba(18, 20, 26, 0.65);
+}
+
+.stack-layer.on::before {
+  border-color: var(--accent2);
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.8);
 }
 
 .stack-name {
@@ -666,27 +823,27 @@ main {
   font-size: 12px;
   color: var(--muted);
   min-width: 160px;
+  transition: color 0.42s var(--ease);
+}
+
+.stack-layer.on .stack-what {
+  color: var(--text);
 }
 
 .stack-scale {
   flex: none;
   font-size: 10.5px;
-  color: var(--accent2);
-  border: 1px solid var(--panel-edge);
+  color: var(--faint);
+  border: 1px solid var(--line);
   border-radius: 999px;
   padding: 1px 9px;
   white-space: nowrap;
+  transition: color 0.42s var(--ease), border-color 0.42s var(--ease);
 }
 
-.stack-land {
-  font-family: var(--cn);
-  font-size: 12px;
+.stack-layer.on .stack-scale {
   color: var(--accent2);
-  border-left: 3px solid var(--accent2);
-  padding: 4px 10px;
-  margin-top: 12px;
-  background: rgba(34, 211, 238, 0.05);
-  border-radius: 0 6px 6px 0;
+  border-color: rgba(34, 211, 238, 0.35);
 }
 
 /* ============ 底部 dock：拓扑带 + 时间线 ============ */
@@ -706,7 +863,7 @@ main {
   align-items: center;
   justify-content: center;
   gap: 0;
-  margin-bottom: 26px; /* 给时间线回路弧留空 */
+  margin-bottom: 26px;
   flex-wrap: nowrap;
   overflow-x: auto;
   scrollbar-width: none;
@@ -725,8 +882,9 @@ main {
 .topo-link {
   width: clamp(10px, 3.4vw, 44px);
   height: 1px;
-  background: var(--panel-edge);
+  background: var(--line);
   margin: 0 2px;
+  transition: background 0.6s var(--ease);
 }
 
 .topo-node {
@@ -735,7 +893,7 @@ main {
   align-items: center;
   gap: 3px;
   color: var(--faint);
-  transition: color 0.35s, filter 0.35s, transform 0.35s;
+  transition: color 0.6s var(--ease), filter 0.6s var(--ease), transform 0.6s var(--ease);
 }
 
 .topo-icon {
@@ -756,6 +914,11 @@ main {
   transform: translateY(-2px);
 }
 
+.topo-node.active + .topo-seg .topo-link,
+.topo-seg:has(.topo-node.active) + .topo-seg .topo-link {
+  background: rgba(34, 211, 238, 0.35);
+}
+
 /* --- 时间线 --- */
 
 .timeline {
@@ -767,10 +930,10 @@ main {
 .tl-track {
   position: absolute;
   left: 0;
-  right: 14px;
+  right: 6px;
   top: 12px;
   height: 2px;
-  background: var(--panel-edge);
+  background: var(--line);
   border-radius: 2px;
   pointer-events: none;
 }
@@ -783,8 +946,8 @@ main {
   background: var(--grad);
   border-radius: 2px;
   box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
-  max-width: calc(100% - 14px);
-  transition: width 0.08s linear;
+  max-width: calc(100% - 6px);
+  transition: width 0.18s linear;
   pointer-events: none;
 }
 
@@ -809,13 +972,14 @@ main {
   height: 12px;
   background: var(--faint);
   border-radius: 2px;
-  transition: background 0.3s, box-shadow 0.3s, height 0.3s;
+  transition: background 0.6s var(--ease), box-shadow 0.6s var(--ease), height 0.42s var(--ease);
 }
 
 .tl-name {
   font-size: 9.5px;
   letter-spacing: 0.1em;
   white-space: nowrap;
+  transition: color 0.6s var(--ease);
 }
 
 .tl-stop:hover .tl-name {
@@ -844,7 +1008,7 @@ main {
   box-shadow:
     0 0 0 3px rgba(167, 139, 250, 0.25),
     0 0 18px rgba(167, 139, 250, 0.9);
-  transition: left 0.08s linear, background 0.4s;
+  transition: left 0.18s linear, background 0.6s var(--ease);
   pointer-events: none;
 }
 
@@ -900,12 +1064,27 @@ main {
   padding: 10vh 24px 6vh;
 }
 
-.outro-card {
+.outro-anim {
   width: min(720px, 100%);
-  background: var(--panel);
+  will-change: opacity, transform;
+  transition: opacity 0.18s linear, transform 0.18s linear;
+}
+
+.outro-card {
+  background: linear-gradient(180deg, #14161d, var(--panel) 30%);
   border: 1px solid var(--panel-edge);
   border-radius: 14px;
   padding: 34px 36px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+.outro-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 4%, rgba(167, 139, 250, 0.55), rgba(34, 211, 238, 0.55), transparent 96%);
 }
 
 .outro-title {
@@ -961,10 +1140,6 @@ main {
   color: var(--muted);
 }
 
-.credit-sep {
-  color: var(--panel-edge);
-}
-
 /* ============ 响应式 ============ */
 
 @media (max-width: 720px) {
@@ -990,5 +1165,20 @@ main {
 
   .dock {
     padding: 8px 10px 10px;
+  }
+
+  .fig {
+    box-shadow: 5px 5px 0 rgba(35, 40, 51, 0.55);
+    padding: 14px 14px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
