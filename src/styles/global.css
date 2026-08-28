@@ -244,7 +244,7 @@ main {
 /* ============ 站点卡片（滚动驱动进出） ============ */
 
 .step-section {
-  min-height: 112vh;
+  min-height: 56vh;
   display: flex;
   align-items: center;
   padding: 4vh 24px;
