@@ -1,16 +1,21 @@
 import type { Step } from "../content/steps";
 import DeepDive from "./DeepDive";
 import { AnnIndexFigure, OutStackFigure } from "./Figures";
-import { useSectionProgress } from "../hooks/useSectionProgress";
+import { useElementProgress } from "../hooks/useSectionProgress";
 
-/** 进度 → 卡片进场/停留/退场的连续变换：模块间交叉溶解 */
+/**
+ * 进度 → 卡片进场/停留/退场的连续变换。
+ * 进度锚定在卡片自身的视口穿越：进场在卡片进入视口后 25% 行程内完成，
+ * 退场从 75% 行程开始——配合压缩后的间距，相邻卡片在视口内重叠，
+ * 形成 module 间真正的交叉溶解。
+ */
 function cardTransform(p: number): { opacity: number; transform: string } {
-  if (p < 0.2) {
-    const k = p / 0.2;
+  if (p < 0.25) {
+    const k = p / 0.25;
     return { opacity: k, transform: `translate3d(0, ${64 * (1 - k)}px, 0)` };
   }
-  if (p > 0.8) {
-    const k = (p - 0.8) / 0.2;
+  if (p > 0.75) {
+    const k = (p - 0.75) / 0.25;
     return { opacity: 1 - k, transform: `translate3d(0, ${-48 * k}px, 0)` };
   }
   return { opacity: 1, transform: "translate3d(0, 0, 0)" };
@@ -25,19 +30,12 @@ export default function StepSection({
   index: number;
   registerRef: (i: number) => (el: HTMLElement | null) => void;
 }) {
-  const { ref, p } = useSectionProgress<HTMLElement>();
+  const { ref, p } = useElementProgress<HTMLDivElement>();
   const style = cardTransform(p);
 
   return (
-    <section
-      className="step-section"
-      id={step.id}
-      ref={(el) => {
-        ref.current = el;
-        registerRef(index)(el);
-      }}
-    >
-      <div className="step-anim" style={style}>
+    <section className="step-section" id={step.id} ref={registerRef(index)}>
+      <div className="step-anim" style={style} ref={ref}>
         <article className="step-card">
           <header className="step-head">
             <span className="step-no">{String(index + 1).padStart(2, "0")}</span>

@@ -244,10 +244,10 @@ main {
 /* ============ 站点卡片（滚动驱动进出） ============ */
 
 .step-section {
-  min-height: 130vh;
+  min-height: 112vh;
   display: flex;
   align-items: center;
-  padding: 6vh 24px;
+  padding: 4vh 24px;
 }
 
 .step-anim {
